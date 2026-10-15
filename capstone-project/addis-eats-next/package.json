@@ -1,0 +1,36 @@
+{
+  "name": "addis-eats",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --test tests/csv.test.mjs tests/format.test.mjs",
+    "check:deploy": "node scripts/postdeploy.mjs",
+    "audit:interaction": "node scripts/audit-interaction.mjs"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "next": "16.4.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-is": "^19.3.0",
+    "recharts": "^3.10.1",
+    "server-only": "^0.0.1",
+    "swr": "^2.5.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "playwright": "^1.63.0",
+    "tailwindcss": "^4"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
