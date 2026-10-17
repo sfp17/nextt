@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getDish } from '@/lib/dishes';
+import { getDish } from '@/lib/menu';
 
 export async function GET(request, { params }) {
   // Next.js 15+: params is a Promise and must be awaited.
   const { id } = await params;
-  const dish = getDish(id);
+  const dish = await getDish(id);
 
   if (!dish) {
     return NextResponse.json(

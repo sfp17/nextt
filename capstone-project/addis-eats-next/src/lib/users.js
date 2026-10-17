@@ -29,6 +29,7 @@ const SEED = [
   { id: 'usr_abebe', name: 'Abebe Bikila', email: 'abebe@addiseats.et', role: 'customer', password: 'injera123' },
   { id: 'usr_sara', name: 'Sara Tesfaye', email: 'sara@addiseats.et', role: 'customer', password: 'buna1234' },
   { id: 'usr_kitchen', name: 'Head Chef', email: 'kitchen@addiseats.et', role: 'staff', password: 'berbere99' },
+  { id: 'usr_admin', name: 'Site Admin', email: 'admin@addiseats.et', role: 'admin', password: 'admin2026' },
 ];
 const seedUsers =
   globalThis.__addisEatsUsers ??
@@ -41,6 +42,7 @@ const DUMMY_HASH = hashPasswordSync(randomBytes(12).toString('hex'));
 export const normaliseEmail = (email) => String(email ?? '').trim().toLowerCase();
 const idKey = (id) => `user:id:${id}`;
 const emailKey = (email) => `user:email:${email}`;
+const ALL_USERS = 'users:all'; // ids of every account created in the app (for /admin/users)
 
 async function findByEmail(email) {
   const e = normaliseEmail(email);
@@ -70,7 +72,7 @@ export async function getUserById(id) {
  * never read from the form, so nobody can sign themselves up as staff.
  * Returns { user } or { error: 'email-taken' }.
  */
-export async function createUser({ name, email, password }) {
+export async function createUser({ name, email, password, role = 'customer' }) {
   const e = normaliseEmail(email);
   if (seedUsers.some((u) => u.email === e)) return { error: 'email-taken' };
 
@@ -84,14 +86,57 @@ export async function createUser({ name, email, password }) {
     id,
     name: String(name).trim(),
     email: e,
-    role: 'customer',
+    // Sign-up never passes a role, so it's always 'customer'. Only /admin
+    // (after its own admin check) can create staff or admin accounts.
+    role: ['customer', 'staff', 'admin'].includes(role) ? role : 'customer',
     passwordHash: await hashPassword(String(password)),
     createdAt: Date.now(),
   };
   await store.set(idKey(id), user);
+  await store.lpush(ALL_USERS, id);
   return { user: toPublic(user) };
 }
 
 function toPublic({ passwordHash: _hash, ...user }) {
   return user;
+}
+
+// ---------------------------------------------------------------- admin (callers check the admin role)
+
+/** The built-in demo accounts live in code: they can be seen but not edited or deleted. */
+export const isBuiltIn = (id) => seedUsers.some((u) => u.id === id);
+
+export async function listUsers() {
+  const ids = [...new Set(await store.lrange(ALL_USERS))];
+  const stored = (await store.mget(ids.map(idKey))).filter(Boolean);
+  return [
+    ...seedUsers.map((u) => ({ ...toPublic(u), builtIn: true })),
+    ...stored.map((u) => ({ ...toPublic(u), builtIn: false })).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+  ];
+}
+
+/** Change name, role and (optionally) password. The email is the login, so it stays. */
+export async function updateUser(id, { name, role, password }) {
+  if (isBuiltIn(id)) return { error: 'built-in' };
+  const user = await store.get(idKey(id));
+  if (!user) return { error: 'not-found' };
+  const next = { ...user, name: String(name).trim(), role: ['customer', 'staff', 'admin'].includes(role) ? role : user.role };
+  if (password) next.passwordHash = await hashPassword(String(password));
+  await store.set(idKey(id), next);
+  return { user: toPublic(next) };
+}
+
+/**
+ * Delete an account. Its sessions stop working at once: getSession() looks the
+ * user up on every request and finds nobody. Its past orders stay (for the
+ * kitchen's records) and show as "deleted account".
+ */
+export async function deleteUser(id) {
+  if (isBuiltIn(id)) return { error: 'built-in' };
+  const user = await store.get(idKey(id));
+  if (!user) return { error: 'not-found' };
+  await store.del(idKey(id));
+  await store.del(emailKey(user.email)); // the email can be registered again
+  await store.lrem(ALL_USERS, id);
+  return { ok: true };
 }

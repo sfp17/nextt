@@ -12,7 +12,7 @@ import 'server-only';
  *   integration sets the env vars below automatically.
  *
  * Only six commands are used, so this needs no SDK: GET, MGET, SET (with
- * expiry, and NX for the order idempotency claim), DEL, LPUSH and LRANGE.
+ * expiry, and NX for the order idempotency claim), DEL, LPUSH, LRANGE and LREM.
  */
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
@@ -73,6 +73,10 @@ const redisStore = {
   async lrange(key) {
     return (await redis(['LRANGE', key, '0', '-1'])) ?? [];
   },
+  /** Remove every copy of `value` from a list (admin deletes). */
+  async lrem(key, value) {
+    await redis(['LREM', key, '0', value]);
+  },
 };
 
 // ---------------------------------------------------------------- memory
@@ -111,6 +115,9 @@ const memoryStore = {
   },
   async lrange(key) {
     return [...(mem.lists.get(key) ?? [])];
+  },
+  async lrem(key, value) {
+    mem.lists.set(key, (mem.lists.get(key) ?? []).filter((v) => v !== value));
   },
 };
 

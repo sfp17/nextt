@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { authenticate, normaliseEmail } from '@/lib/users';
 import { rateLimit } from '@/lib/rateLimit';
 import { createSession, safeNext } from '@/lib/session';
@@ -30,5 +31,12 @@ export async function signIn(prevState, formData) {
   await limit.reset();
 
   await createSession(user.id);
-  redirect(next); // must be outside try/catch — redirect() works by throwing
+  // Not redirect(): we return who signed in, so the form can update the header
+  // at the same moment it navigates (a server redirect left "Sign in" showing
+  // until the header's own check came back, up to a few seconds on Vercel).
+  // `next` has already been through safeNext(), so it's always a path on this site.
+  // Without JavaScript (a plain form post, no Next-Action header) there's no form
+  // code to navigate, so redirect on the server as before.
+  if (!(await headers()).has('next-action')) redirect(next);
+  return { success: true, next, user: { name: user.name, role: user.role } };
 }

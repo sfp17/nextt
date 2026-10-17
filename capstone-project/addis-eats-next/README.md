@@ -26,6 +26,7 @@ SWR, Leaflet, Recharts and Upstash Redis.
 | 5. Track | `/track/ORD-…` | Live map (courier and your address) and the same details in text, updated by server-sent events |
 | 6. History | `/orders` | Your orders in a sortable, paged table; **Export CSV** |
 | Staff | `/kitchen`, `/dashboard` | Live order board; revenue by neighbourhood and orders per day |
+| Admin | `/admin` | Create, edit, hide and delete **dishes**; create orders, change status, edit and delete **orders**; create accounts, change roles, reset passwords and delete **users** |
 
 A new order goes *placed → preparing (15 s) → on the way (30 s) → delivered (45 s)*, so a whole delivery fits in a demo.
 
@@ -37,6 +38,29 @@ Create your own at `/signup`, or use the demo accounts:
 | abebe@addiseats.et | `injera123` | customer, owns `ORD-DEMO` and about 58 past orders |
 | sara@addiseats.et | `buna1234` | customer, no orders (shows the empty states) |
 | kitchen@addiseats.et | `berbere99` | staff (`/kitchen`, `/dashboard`) |
+| **admin@addiseats.et** | `admin2026` | **admin**: everything above **plus `/admin`** |
+
+## The admin panel (`/admin`)
+Sign in as **admin@addiseats.et / `admin2026`** and click **Admin** in the header (or go to `/admin`).
+
+| Section | Create | Read | Update | Delete | What the customer sees |
+|---------|--------|------|--------|--------|------------------------|
+| **Menu** | Add a dish (name, price, category, description, photo from the library, alt text) | All dishes, hidden ones too | Edit any field; **Visible / Hidden** switch | Delete (past orders keep the name and price) | The menu, dish page, search, sitemap and checkout prices update straight away; hidden or deleted dishes can't be ordered |
+| **Orders** | Phone order for a customer account or walk-in, priced from the menu | Every order placed in the app, filter by status | Status (dropdown, saves instantly), name, phone, area, address | Delete | Status: order page within 5 s, live map within 1 s. A status set here **holds** (no automatic timeline) until changed again |
+| **Users** | Account with a role (customer / kitchen staff / admin) and password | Every account | Name, role, new password | Delete: signed out everywhere at once | A promoted user sees Kitchen / Dashboard / Admin on their next page |
+
+**Roles:** customers order; **kitchen staff** get the kitchen board and dashboard; **admins** get everything, including
+`/admin`. Kitchen staff are refused at `/admin`.
+
+**Protected like the rest of the app:** the proxy (cookie) → the `/admin` layout (signed in **and** admin) → **every admin
+action checks the admin role again**. Tested by capturing an admin request and replaying it with a customer's cookie:
+"Admins only" (403). The four demo accounts are read-only (they're in code, so the class demo always works), and an
+admin can't delete their own account or remove their own admin role.
+
+**Menu storage:** `lib/dishes.js` is the starting menu. The first admin change saves the whole menu to Redis
+(`menu:dishes`); from then on that copy is used everywhere. **Reset menu to the starting dishes** (bottom of Admin → Menu)
+goes back to `lib/dishes.js`. Photos are chosen from the existing library: uploading new photos needs file storage
+(FUTURE.md).
 
 ## Run it from a fresh clone
 Needs **Node.js 20.9 or newer**.

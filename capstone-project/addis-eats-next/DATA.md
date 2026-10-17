@@ -86,8 +86,10 @@ owner, so the same rule holds) and `listAllOrders` (staff only).
 | `session:<sha256 of cookie>` | `{ userId }` | 7 days |
 | `user:id:<id>` | account from `/signup`: name, email, role (always customer), scrypt hash | never |
 | `user:email:<email>` | the account id (claimed with `SET NX`) | never |
-| `order:<id>` | the order | never |
+| `order:<id>` | the order (`adminStatus` + `statusChangedAt` when an admin set the status by hand) | never |
 | `orders:owner:<userId>`, `orders:all` | lists of order ids, newest first | never |
+| `menu:dishes` | the whole menu, once an admin has changed it (else `lib/dishes.js` is used) | never |
+| `users:all` | ids of accounts created in the app (for Admin → Users) | never |
 | `idem:<userId>:<key>` | `pending`, then the order id (double-submit guard) | 10 min / 24 h |
 | `rl:signin:<email>`, `rl:signup:<ip>` | `{ count, resetAt }` | end of the window |
 

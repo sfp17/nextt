@@ -29,7 +29,8 @@ are below, each with the reason it waited. Cutting them was a decision, not some
 | **SMS / push notifications** ("your rider is outside") | Needs a provider and consent | Africa's Talking or web push; a "notify me" preference |
 | **Amharic (አማርኛ) translation** | Every string would need translating and checking by a fluent speaker | `next-intl`, translated messages, `lang="am"` routes |
 | **Dark mode** | Every colour, the charts and the map would need a second, checked palette | Colour tokens per scheme, the chart validator run on the dark surface |
-| **Menu editing for staff** | Dishes are a code file; editing needs an admin UI and image uploads | A `dishes` store, an admin form, image storage |
+| **Photo uploads in the admin** | Admin → Menu is built; new dishes choose from the existing photo library, because Vercel has no permanent disk for uploads | Vercel Blob (or S3) for the file, its URL in `remotePatterns` |
+| **Admin audit log** | Who changed what, and when | An `audit` list in Redis written by every admin action |
 | **Saved addresses and reorder** | Nice for repeat customers, not needed for the first order | An `addresses:<userId>` list; "order again" button on past orders |
 | **Kitchen board over SSE** | The kitchen still polls every 5 s, which works; the customer side was the priority | Reuse the Day 47 stream route for all live orders |
 | **Offline / installable app (PWA)** | Ordering food needs the network anyway | Manifest, service worker for the menu |

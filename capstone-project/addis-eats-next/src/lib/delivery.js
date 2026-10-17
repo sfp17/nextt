@@ -77,9 +77,16 @@ export function trackingSnapshot(order, now = Date.now()) {
   const final = order.status === 'delivered' || order.status === 'cancelled';
   const elapsed = (now - order.createdAt) / 1000;
 
+  // Set by an admin: count from the moment the status was changed, not from the order time.
+  const manual = Boolean(order.adminStatus) && !final;
+  const sinceChange = manual ? (now - (order.statusChangedAt ?? now)) / 1000 : 0;
+
   let progress; // 0 = at the kitchen, 1 = at the door
   if (order.status === 'delivered') progress = 1;
-  else if (order.status === 'on_the_way') progress = Math.min(1, Math.max(0, (elapsed - RIDE_START) / (RIDE_END - RIDE_START)));
+  else if (order.status === 'on_the_way')
+    progress = manual
+      ? Math.min(1, sinceChange / (RIDE_END - RIDE_START)) // rides for 15 s, then waits at the door
+      : Math.min(1, Math.max(0, (elapsed - RIDE_START) / (RIDE_END - RIDE_START)));
   else progress = 0;
 
   const courier = {
@@ -106,7 +113,11 @@ export function trackingSnapshot(order, now = Date.now()) {
     remainingKm: Math.round(distanceKm(courier, destination) * 10) / 10,
     progress: Math.round(progress * 100) / 100,
     createdAt: order.createdAt,
-    etaAt: final ? null : order.createdAt + RIDE_END * 1000,
+    etaAt: final
+      ? null
+      : manual
+        ? (order.statusChangedAt ?? now) + Math.max(0, RIDE_END - (STEP[order.status] ?? 0)) * 1000
+        : order.createdAt + RIDE_END * 1000,
     deliveredAt: order.status === 'delivered' ? (order.deliveredAt ?? order.createdAt + RIDE_END * 1000) : null,
     total: order.total,
     sentAt: now,

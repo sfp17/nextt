@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { getDish } from '@/lib/dishes';
+import { getDish } from '@/lib/menu';
 import { etb } from '@/lib/format';
 import { ogFonts, publicImageDataUrl } from '@/lib/ogFonts';
 
@@ -9,7 +9,7 @@ export const contentType = 'image/png';
 // Lets each dish's image have its OWN alt text (og:image:alt), from the data.
 export async function generateImageMetadata({ params }) {
   const { id } = await params;
-  const dish = getDish(id);
+  const dish = await getDish(id);
   return [
     {
       id: 'card',
@@ -22,7 +22,7 @@ export async function generateImageMetadata({ params }) {
 
 export default async function DishOpengraphImage({ params }) {
   const { id } = await params;
-  const dish = getDish(id);
+  const dish = await getDish(id);
   const fonts = await ogFonts();
 
   if (!dish) {

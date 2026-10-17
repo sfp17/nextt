@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getDish } from './dishes';
+import { getDish } from './menu';
 import { NEIGHBOURHOODS } from './neighbourhoods';
 
 export const orderSchema = z.object({
@@ -11,7 +11,7 @@ export const orderSchema = z.object({
     .array(
       z.object({
         // Reject IDs that aren't on the menu instead of saving a "Dish #99" at 0 ETB.
-        dishId: z.string().refine((id) => getDish(id) !== null, 'Unknown dish'),
+        dishId: z.string().refine(async (id) => (await getDish(id)) !== null, 'This dish is no longer on the menu'),
         quantity: z.number().int().positive().max(20, 'Maximum 20 of one dish per order'),
       })
     )

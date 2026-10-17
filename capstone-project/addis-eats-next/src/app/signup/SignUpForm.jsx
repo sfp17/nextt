@@ -4,14 +4,25 @@ import { useActionState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { signUp } from './actions';
 import PasswordField from '../PasswordField';
+import { useSignedIn } from '../useSignedIn';
 
 export default function SignUpForm({ next }) {
   const [state, formAction, isPending] = useActionState(signUp, { values: {}, fieldErrors: {}, error: '' });
   const sent = useRef(false);
   const errors = state.fieldErrors ?? {};
+  useSignedIn(state);
   useEffect(() => {
     if (!isPending) sent.current = false; // an error came back: allow the corrected form
   }, [isPending]);
+
+  if (state.success) {
+    return (
+      <div className="card" role="status">
+        <p>Your account is ready, <strong>{state.user.name}</strong>. Taking you to the menu…</p>
+        <Link href={state.next} className="btn btn-primary" style={{ marginTop: '0.75rem' }}>Continue</Link>
+      </div>
+    );
+  }
 
   return (
     <form

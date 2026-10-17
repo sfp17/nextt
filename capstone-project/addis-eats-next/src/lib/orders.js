@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDish } from './dishes';
+import { getDish } from './menu';
 import { TIMELINE } from './orders-steps';
 import { store } from './store';
 import { historyOrders, isHistoryId } from './orderHistory';
@@ -30,15 +30,17 @@ export async function createOrder({ fullName, phone, neighbourhood, address, ite
     neighbourhood,
     address,
     // Names and prices come from the menu on the server, never from the client.
-    items: items.map((i) => {
-      const dish = getDish(i.dishId);
-      return {
-        dishId: i.dishId,
-        name: dish?.name ?? `Dish #${i.dishId}`,
-        price: dish?.price ?? 0,
-        quantity: i.quantity,
-      };
-    }),
+    items: await Promise.all(
+      items.map(async (i) => {
+        const dish = await getDish(i.dishId);
+        return {
+          dishId: i.dishId,
+          name: dish?.name ?? `Dish #${i.dishId}`,
+          price: dish?.price ?? 0,
+          quantity: i.quantity,
+        };
+      })
+    ),
     createdAt: Date.now(),
     cancelledAt: null,
     deliveredAt: null,
@@ -121,6 +123,13 @@ function withStatus(order) {
     return { ...order, status: 'cancelled', statusLabel: 'Order cancelled', total, updatedAt: new Date().toISOString() };
   }
 
+  // An admin set the status by hand (/admin/orders): it stays there until changed again,
+  // instead of following the automatic timeline.
+  if (order.adminStatus && !order.deliveredAt) {
+    const step = TIMELINE.find((s) => s.status === order.adminStatus);
+    if (step) return { ...order, status: step.status, statusLabel: step.label, total, updatedAt: new Date().toISOString() };
+  }
+
   const elapsed = order.deliveredAt ? Infinity : (Date.now() - order.createdAt) / 1000;
   const current = [...TIMELINE].reverse().find((s) => elapsed >= s.after);
 
@@ -186,4 +195,50 @@ export async function markCancelled(id) {
 export async function markDelivered(id) {
   const order = await store.get(orderKey(id));
   if (order && !order.cancelledAt) await store.set(orderKey(id), { ...order, deliveredAt: Date.now() });
+}
+
+// ---------------------------------------------------------------- admin (callers check the admin role)
+
+export const ADMIN_STATUSES = ['placed', 'preparing', 'on_the_way', 'delivered', 'cancelled'];
+
+/** Orders placed in the app (not the generated history), newest first. */
+export async function listStoredOrders() {
+  await ensureDemoOrder();
+  return loadMany(await store.lrange(ALL_KEY));
+}
+
+/**
+ * Set the status by hand. The customer's order page (polling) and tracking
+ * page (stream) pick it up within seconds, because they read the same record.
+ */
+export async function setOrderStatus(id, status) {
+  const order = await store.get(orderKey(id));
+  if (!order || !ADMIN_STATUSES.includes(status)) return null;
+  const now = Date.now();
+  const next = {
+    ...order,
+    adminStatus: ['placed', 'preparing', 'on_the_way'].includes(status) ? status : null,
+    statusChangedAt: now,
+    deliveredAt: status === 'delivered' ? (order.deliveredAt ?? now) : null,
+    cancelledAt: status === 'cancelled' ? (order.cancelledAt ?? now) : null,
+  };
+  await store.set(orderKey(id), next);
+  return withStatus(next);
+}
+
+export async function updateOrderDetails(id, { fullName, phone, neighbourhood, address }) {
+  const order = await store.get(orderKey(id));
+  if (!order) return null;
+  const next = { ...order, fullName, phone, neighbourhood, address };
+  await store.set(orderKey(id), next);
+  return withStatus(next);
+}
+
+export async function deleteOrder(id) {
+  const order = await store.get(orderKey(id));
+  if (!order) return false;
+  await store.del(orderKey(id));
+  await store.lrem(ALL_KEY, id);
+  if (order.ownerId) await store.lrem(ownerKey(order.ownerId), id);
+  return true;
 }

@@ -2,24 +2,27 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import AddToCartButton from '../AddToCartButton';
-import { dishes, getDish, DISH_IMAGE_WIDTH, DISH_IMAGE_HEIGHT } from '@/lib/dishes';
+import { DISH_IMAGE_WIDTH, DISH_IMAGE_HEIGHT } from '@/lib/dishes';
+import { getMenu, getDish } from '@/lib/menu';
 import { dishSummary, menuItemJsonLd, jsonLdString } from '@/lib/dishSeo';
 import { baseOpenGraph, baseTwitter } from '@/lib/site';
 import { etb } from '@/lib/format';
 
-// Only the dishes returned below exist. Any other ID (e.g. a removed dish)
-// gets a real 404 status, not a 200 page that says "not found".
-export const dynamicParams = false;
+// Every dish on the menu at build time is pre-rendered. Dishes an admin adds
+// later are rendered on their first visit, then cached; an unknown or deleted
+// id gets notFound() (a real 404). Edits refresh the page straight away
+// (revalidatePath in app/admin/actions.js), and at most hourly anyway.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  return dishes.map((dish) => ({ id: dish.id }));
+  return (await getMenu()).map((dish) => ({ id: dish.id }));
 }
 
 // Title, description and social preview text come from the dish record itself.
 // The og:image is NOT set here: ./opengraph-image.jsx generates it per dish.
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const dish = getDish(id);
+  const dish = await getDish(id);
   if (!dish) return { title: 'Dish not found', robots: { index: false } };
 
   const title = `${dish.name} — ${etb(dish.price)}`; // → "Doro Wat — 350 ETB | Addis Eats"
@@ -41,7 +44,7 @@ export async function generateMetadata({ params }) {
 
 export default async function DishDetailPage({ params }) {
   const { id } = await params;
-  const dish = getDish(id);
+  const dish = await getDish(id);
 
   if (!dish) {
     notFound();

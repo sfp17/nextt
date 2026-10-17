@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getSession, safeNext } from '@/lib/session';
 import SignInForm from './SignInForm';
 
@@ -14,7 +15,10 @@ export default async function SignInPage({ searchParams }) {
   const next = safeNext(rawNext);
 
   // Already signed in? Skip the form and go straight to the destination.
-  if (await getSession()) redirect(next);
+  // Not during the sign-in itself (a server-action request): then the form
+  // navigates and updates the header in the same moment (useSignedIn.js).
+  const duringSignIn = (await headers()).has('next-action');
+  if (!duringSignIn && (await getSession())) redirect(next);
 
   return (
     <div className="auth-page">

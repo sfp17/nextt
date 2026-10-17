@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getSession, safeNext } from '@/lib/session';
 import SignUpForm from './SignUpForm';
 
@@ -10,7 +11,8 @@ export const metadata = {
 
 export default async function SignUpPage({ searchParams }) {
   const next = safeNext((await searchParams).next);
-  if (await getSession()) redirect(next); // already signed in
+  const duringSignUp = (await headers()).has('next-action'); // see signin/page.js
+  if (!duringSignUp && (await getSession())) redirect(next); // already signed in
 
   return (
     <div className="auth-page">

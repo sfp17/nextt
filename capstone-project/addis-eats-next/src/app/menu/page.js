@@ -1,6 +1,7 @@
 import FilterShell from './FilterShell';
 import { baseOpenGraph } from '@/lib/site';
-import { queryDishes, dishesPageKey } from '@/lib/dishes';
+import { dishesPageKey } from '@/lib/dishes';
+import { queryDishes } from '@/lib/menu';
 
 export const metadata = {
   title: 'Menu',
@@ -16,7 +17,7 @@ export const revalidate = 3600;
 export default async function MenuPage() {
   // Seed the first page on the server under the exact key the client will
   // request, so the menu is visible on first paint with no loading state.
-  const firstPage = queryDishes({ page: 1, category: 'all' });
+  const firstPage = await queryDishes({ page: 1, category: 'all' });
 
   return (
     <div>

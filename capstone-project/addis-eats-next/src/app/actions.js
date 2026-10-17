@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { orderSchema } from '@/lib/schema';
 import { placeOrderOnce, getOrderForOwner, getOrder, markCancelled, markDelivered } from '@/lib/orders';
 import { getSession, destroySession } from '@/lib/session';
+import { isStaff } from '@/lib/roles';
 
 // Every action re-checks the session itself. Server actions are public POST
 // endpoints — the proxy and the page that shows the button are NOT protection.
@@ -30,7 +31,7 @@ export async function placeOrder(prevState, formData) {
     address: String(formData.get('address') ?? ''),
   };
 
-  const validated = orderSchema.safeParse({ ...values, items });
+  const validated = await orderSchema.safeParseAsync({ ...values, items });
 
   if (!validated.success) {
     const fieldErrors = validated.error.flatten().fieldErrors;
@@ -82,7 +83,7 @@ export async function cancelOrder(orderId) {
 export async function markOrderDelivered(orderId) {
   const session = await getSession();
   if (!session) return { success: false, status: 401, error: 'Please sign in.' };
-  if (session.user.role !== 'staff') return { success: false, status: 403, error: 'Staff only.' };
+  if (!isStaff(session.user.role)) return { success: false, status: 403, error: 'Staff only.' };
 
   const order = await getOrder(String(orderId));
   if (!order) return { success: false, status: 404, error: 'Order not found' };

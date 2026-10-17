@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { queryDishes, PAGE_SIZE } from '@/lib/dishes';
+import { PAGE_SIZE } from '@/lib/dishes';
+import { queryDishes } from '@/lib/menu';
 
 // GET /api/dishes?q=doro&category=ethiopian&page=2&limit=6
 export async function GET(request) {
@@ -16,5 +17,5 @@ export async function GET(request) {
   const delay = q ? Math.max(150, 700 - q.length * 120) : 400;
   await new Promise((r) => setTimeout(r, delay));
 
-  return NextResponse.json(queryDishes({ q, category, page, limit }), { status: 200 });
+  return NextResponse.json(await queryDishes({ q, category, page, limit }), { status: 200 });
 }

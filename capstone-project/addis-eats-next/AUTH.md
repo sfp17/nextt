@@ -47,6 +47,7 @@ form doesn't reveal which accounts exist.
 | `/kitchen` | Staff only | **Proxy → page + role → role in every action** | proxy: *a cookie exists* · page (`kitchen/page.js:14`, `:18`): *signed in **and** staff*, else 403 · `markOrderDelivered` (`actions.js:85`): *role re-checked on the write* |
 | `/dashboard` | Staff only | **Proxy → layout → page + role** | proxy: *a cookie exists* · `dashboard/layout.js`: *session verified*, before the skeleton streams · page: *signed in **and** staff*, else 403, and the data is only loaded after that check |
 | `/track/[id]` | The owner | **Proxy → page → scoped query**; the stream checks for itself | proxy: *a cookie exists* · page `requireUser` + `getOrderForOwner`: *this order is theirs*, else 404 · `GET /api/orders/[id]/stream`: 401 / 404 before opening, ownership re-checked on every tick |
+| `/admin` and everything under it | **Admins only** | **Proxy → layout (session + admin role) → every admin action re-checks the role** | proxy: *a cookie exists* · `admin/layout.js`: *signed in and admin*, else "Admins only (403)", kitchen staff too · `requireAdmin()` at the top of **every** action in `admin/actions.js`: a customer replaying an admin request gets 403 (tested) |
 | `/signup` | Everyone (signed-in users are sent on) | `safeNext()`, schema, rate limit, atomic email claim | the account is a customer; the email is unique; the redirect stays on this site |
 | `/signin` | Everyone | `safeNext()` on the way in **and** in the action | the redirect target is a path on this site, never another site |
 
@@ -70,8 +71,9 @@ request. So each one checks for itself and never trusts an id it was handed.
 placeOrder          session (actions.js:14) -> owner = session.user.id (actions.js:51), never a form field; at most one order per idempotency key (lib/orders.js placeOrderOnce)
 cancelOrder         session (actions.js:63) -> getOrderForOwner(id, session.user.id) (actions.js:68) -> 404 if not theirs (:70)
 markOrderDelivered  session (actions.js:84) -> role === 'staff' (actions.js:85) -> 403 otherwise
+admin actions       requireAdmin(): 401 signed out, 403 unless role is admin; can't delete yourself or remove your own admin role; demo accounts read-only
 signUp              rate limit (IP) -> signUpSchema -> createUser: role fixed to customer, email claimed atomically -> createSession
-signIn              rate limit (email) -> safeNext(formData.next) (signin/actions.js:11), same message for wrong email and wrong password
+signIn              rate limit (email) -> safeNext(formData.next) (signin/actions.js:12), same message for wrong email and wrong password
 signOutAction       deletes the session from the store, then the cookie
 GET  /api/orders/[id]     401 without session (:13) -> getOrderForOwner (:17) -> 404 if not theirs (:18)
 POST /api/orders          401 without session (:11) -> owner = session.user.id (:31)
@@ -95,7 +97,7 @@ with a crafted POST. That's the point of the exercise.
 |---|--------------------------|-------------------|----------------------|
 | 1 | Signed out: `await cancelOrder("ord_812")` | `{"success":false,"status":401,"error":"Please sign in."}`, refused, not a crash | `src/app/actions.js:63`: `if (!session)` |
 | 2 | Signed in as **Sara**: `await cancelOrder("ORD-DEMO")` (Abebe's order) | `{"success":false,"status":404,"error":"Order not found"}`, refused **on ownership**, not on session | `src/lib/orders.js:149`: `order.ownerId !== ownerId`, reached from `actions.js:68` |
-| 3 | `/signin?next=https://example.com` | Signs in and lands on **`/`**, not example.com | `src/lib/session.js:77`: `if (!next.startsWith('/')) return '/'` (re-applied in `signin/actions.js:11`) |
+| 3 | `/signin?next=https://example.com` | Signs in and lands on **`/`**, not example.com | `src/lib/session.js:77`: `if (!next.startsWith('/')) return '/'` (re-applied in `signin/actions.js:12`) |
 
 Also verified:
 - **Changing the URL:** Sara opens `/orders/ORD-DEMO` and gets "Order not found"; `GET /api/orders/ORD-DEMO` returns **404**.

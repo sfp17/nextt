@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { dishes, getDish } from '@/lib/dishes';
+import { getMenu, getDish } from '@/lib/menu';
 import { baseOpenGraph } from '@/lib/site';
 import DishCard from './menu/DishCard';
 
@@ -12,9 +12,15 @@ export const metadata = {
   openGraph: { ...baseOpenGraph, url: '/' },
 };
 
-export default function HomePage() {
-  // Pulled from the real menu so names, prices and links always match.
-  const specials = ['1', '2', '7'].map(getDish);
+// Rebuilt at most hourly, and straight away when an admin changes the menu.
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  // Pulled from the real menu so names, prices and links always match. If an
+  // admin removes one of the usual three, the next dishes on the menu fill in.
+  const menu = await getMenu();
+  const picked = (await Promise.all(['1', '2', '7'].map((id) => getDish(id)))).filter(Boolean);
+  const specials = [...picked, ...menu.filter((d) => !picked.includes(d))].slice(0, 3);
 
   return (
     <>
@@ -44,7 +50,7 @@ export default function HomePage() {
             <Link href="/orders" className="btn hero-btn hero-btn-ghost">Track my order</Link>
           </div>
           <ul className="hero-facts" aria-label="Why order from Addis Eats">
-            <li>{dishes.length} dishes on the menu</li>
+            <li>{menu.length} dishes on the menu</li>
             <li>Live order tracking</li>
             <li>Delivery across Addis</li>
           </ul>

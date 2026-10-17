@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { signUpSchema } from '@/lib/schema';
 import { createUser } from '@/lib/users';
 import { createSession, safeNext } from '@/lib/session';
@@ -42,5 +42,7 @@ export async function signUp(prevState, formData) {
   await createSession(user.id); // signed in straight away
   // A one-time, harmless note for the welcome message (read and deleted by the browser).
   (await cookies()).set('ae_flash', 'welcome', { path: '/', maxAge: 60, sameSite: 'lax' });
-  redirect(next === '/' ? '/menu' : next);
+  const dest = next === '/' ? '/menu' : next;
+  if (!(await headers()).has('next-action')) redirect(dest); // no JavaScript: plain server redirect
+  return { success: true, next: dest, user: { name: user.name, role: user.role } };
 }

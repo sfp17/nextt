@@ -19,7 +19,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 
-  const result = orderSchema.safeParse(body);
+  const result = await orderSchema.safeParseAsync(body);
   if (!result.success) {
     return NextResponse.json(
       { error: 'Unprocessable Entity', fieldErrors: result.error.flatten().fieldErrors },

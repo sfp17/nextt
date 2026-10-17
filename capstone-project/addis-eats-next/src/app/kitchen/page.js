@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/session';
+import { isStaff } from '@/lib/roles';
 import { listLiveOrders } from '@/lib/orders';
 import KitchenBoard from './KitchenBoard';
 
@@ -15,7 +16,7 @@ export default async function KitchenPage() {
 
   // The role check happens HERE, on the server — not by hiding the nav link.
   // A customer who types /kitchen gets this, and never receives the order data.
-  if (user.role !== 'staff') {
+  if (!isStaff(user.role)) {
     return (
       <div className="narrow">
         <div className="card empty-state">

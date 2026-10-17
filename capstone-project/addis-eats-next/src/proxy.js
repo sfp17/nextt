@@ -34,5 +34,5 @@ export function proxy(request) {
 // Narrow matcher: runs ONLY on private pages. The menu, home, cart,
 // static files and images never pay for it.
 export const config = {
-  matcher: ['/checkout/:path*', '/orders/:path*', '/kitchen/:path*', '/dashboard/:path*', '/track/:path*'],
+  matcher: ['/checkout/:path*', '/orders/:path*', '/kitchen/:path*', '/dashboard/:path*', '/track/:path*', '/admin/:path*'],
 };

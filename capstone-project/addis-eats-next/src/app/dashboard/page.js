@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/session';
+import { isStaff } from '@/lib/roles';
 import { listAllOrders } from '@/lib/orders';
 import { withDemoState } from '@/lib/demoState';
 import { HISTORY_DAYS, addisDayKey } from '@/lib/orderHistory';
@@ -66,7 +67,7 @@ export default async function DashboardPage({ searchParams }) {
   const { user } = await requireUser('/dashboard');
 
   // Role check on the server: hiding the nav link is not security.
-  if (user.role !== 'staff') {
+  if (!isStaff(user.role)) {
     return (
       <div className="narrow">
         <div className="card empty-state">
