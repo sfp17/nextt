@@ -6,7 +6,7 @@ import { getSession } from '@/lib/session';
 export async function GET() {
   const session = await getSession();
   return NextResponse.json(
-    { user: session ? { name: session.user.name, role: session.user.role } : null },
+    { user: session ? { name: session.user.name, email: session.user.email, role: session.user.role } : null }, // only your own details
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }

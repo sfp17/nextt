@@ -83,7 +83,8 @@ owner, so the same rule holds) and `listAllOrders` (staff only).
 ## Every key in the store (Day 49)
 | Key | Holds | Expires |
 |-----|-------|---------|
-| `session:<sha256 of cookie>` | `{ userId }` | 7 days |
+| `session:<sha256 of cookie>` | `{ userId, createdAt }` | 7 days |
+| `sessions:user:<userId>` | that user's session keys (for Log out of all devices) | entries removed on log out |
 | `user:id:<id>` | account from `/signup`: name, email, role (always customer), scrypt hash | never |
 | `user:email:<email>` | the account id (claimed with `SET NX`) | never |
 | `order:<id>` | the order (`adminStatus` + `statusChangedAt` when an admin set the status by hand) | never |

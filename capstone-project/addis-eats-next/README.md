@@ -26,6 +26,8 @@ SWR, Leaflet, Recharts and Upstash Redis.
 | 5. Track | `/track/ORD-…` | Live map (courier and your address) and the same details in text, updated by server-sent events |
 | 6. History | `/orders` | Your orders in a sortable, paged table; **Export CSV** |
 | Staff | `/kitchen`, `/dashboard` | Live order board; revenue by neighbourhood and orders per day |
+| Theme | every page | **Light / dark** button (sun / moon) in the header, next to the hamburger on phones. Starts from your device setting, remembers your choice, no white flash on load; map and charts have dark versions; text contrast checked on 16 pages in both themes |
+| Account | `/account` | Your details; change name and password; **Log out** or **Log out of all devices**. The account menu (your initials, top right) has Log out on every page |
 | Admin | `/admin` | Create, edit, hide and delete **dishes**; create orders, change status, edit and delete **orders**; create accounts, change roles, reset passwords and delete **users** |
 
 A new order goes *placed → preparing (15 s) → on the way (30 s) → delivered (45 s)*, so a whole delivery fits in a demo.

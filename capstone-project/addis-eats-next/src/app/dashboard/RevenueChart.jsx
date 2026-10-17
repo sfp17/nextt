@@ -22,14 +22,19 @@ import {
   YAxis,
 } from 'recharts';
 import { etb, etbCompact } from '@/lib/format';
+import { useTheme } from '@/lib/theme';
 
-const SERIES = '#b3261e'; // --berbere
-const INK = '#231a15';
-const INK_SOFT = '#5c514a';
-const GRID = '#e7e1d8';
-const SURFACE = '#ffffff';
-
-const tick = { fill: INK_SOFT, fontSize: 12 };
+// One palette per theme. The dark series red (#e5534b) was checked with the
+// palette validator against the dark background (lightness, chroma, ≥ 3:1 contrast).
+const PALETTES = {
+  light: { series: '#b3261e', ink: '#231a15', inkSoft: '#5c514a', grid: '#e7e1d8', surface: '#ffffff', cursor: 'rgba(35, 26, 21, 0.05)' },
+  dark: { series: '#e5534b', ink: '#f3ece6', inkSoft: '#cdc1b7', grid: '#3a302a', surface: '#16110e', cursor: 'rgba(243, 236, 230, 0.06)' },
+};
+function useChartColors() {
+  const theme = useTheme();
+  const c = PALETTES[theme === 'dark' ? 'dark' : 'light'];
+  return { SERIES: c.series, INK: c.ink, INK_SOFT: c.inkSoft, GRID: c.grid, SURFACE: c.surface, CURSOR: c.cursor, tick: { fill: c.inkSoft, fontSize: 12 } };
+}
 
 /** Round tick values (0, 10K, 20K …) instead of whatever 4 equal slices of the max give. */
 function niceTicks(max, target = 4) {
@@ -41,6 +46,7 @@ function niceTicks(max, target = 4) {
 }
 
 function TooltipBox({ active, payload, label, format }) {
+  const { SERIES } = useChartColors();
   if (!active || !payload?.length) return null;
   return (
     <div className="chart-tooltip">
@@ -54,6 +60,7 @@ function TooltipBox({ active, payload, label, format }) {
 }
 
 export function RevenueChart({ data, label }) {
+  const { SERIES, INK, INK_SOFT, GRID, CURSOR, tick } = useChartColors();
   const height = 36 + data.length * 34; // rows + the axis band, fixed before it draws
   const ticks = niceTicks(Math.max(...data.map((d) => d.revenue)));
   return (
@@ -73,7 +80,7 @@ export function RevenueChart({ data, label }) {
           />
           <YAxis type="category" dataKey="area" tick={{ ...tick, fill: INK }} width={84} axisLine={{ stroke: GRID }} tickLine={false} />
           <Tooltip
-            cursor={{ fill: 'rgba(35, 26, 21, 0.05)' }}
+            cursor={{ fill: CURSOR }}
             content={<TooltipBox format={(v) => etb(v)} />}
           />
           <Bar dataKey="revenue" name="Revenue" fill={SERIES} barSize={20} radius={[0, 4, 4, 0]} isAnimationActive={false}>
@@ -86,6 +93,7 @@ export function RevenueChart({ data, label }) {
 }
 
 export function OrdersLineChart({ data, label }) {
+  const { SERIES, INK, INK_SOFT, GRID, SURFACE, tick } = useChartColors();
   const lastIndex = data.length - 1;
   return (
     <div className="chart-box" style={{ height: 280 }} role="img" aria-label={label}>

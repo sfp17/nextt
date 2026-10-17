@@ -36,6 +36,7 @@ export default async function SignInPage({ searchParams }) {
             <tr><td>abebe@addiseats.et</td><td><code>injera123</code></td><td>customer</td></tr>
             <tr><td>sara@addiseats.et</td><td><code>buna1234</code></td><td>customer</td></tr>
             <tr><td>kitchen@addiseats.et</td><td><code>berbere99</code></td><td>staff</td></tr>
+            <tr><td>admin@addiseats.et</td><td><code>admin2026</code></td><td>admin</td></tr>
           </tbody>
         </table>
       </div>

@@ -45,7 +45,7 @@ export default function DeliveryMap({ courier, destination, kitchen, final }) {
     }).addTo(map);
 
     // The route, kitchen → door, as a quiet dashed line.
-    L.polyline([toLatLng(k), toLatLng(d)], { color: '#5c514a', weight: 2, dashArray: '6 6', opacity: 0.7, interactive: false }).addTo(map);
+    L.polyline([toLatLng(k), toLatLng(d)], { color: '#5c514a', className: 'route-line', weight: 2, dashArray: '6 6', opacity: 0.7, interactive: false }).addTo(map);
 
     L.marker(toLatLng(d), { icon: homeIcon, keyboard: false, title: 'Delivery address' })
       .bindTooltip('Delivery address', { permanent: true, direction: 'top', offset: [0, -40], className: 'map-label' })

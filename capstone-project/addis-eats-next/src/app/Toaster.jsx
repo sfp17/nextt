@@ -10,7 +10,8 @@ import { fetcher } from '@/lib/fetcher';
 // the cookie; the text is chosen here, so nothing from a cookie is ever shown as-is.
 const MESSAGES = {
   welcome: (name) => `Welcome to Addis Eats${name ? `, ${name.split(' ')[0]}` : ''}! Your account is ready. Pick something to eat.`,
-  'signed-out': () => 'You are signed out. See you soon!',
+  'signed-out': () => 'You are logged out. See you soon!',
+  'signed-out-all': () => 'You are logged out on every device.',
 };
 
 function readFlash() {

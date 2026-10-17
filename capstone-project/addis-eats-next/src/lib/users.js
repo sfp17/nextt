@@ -115,6 +115,25 @@ export async function listUsers() {
   ];
 }
 
+/** For /account: change your own password, after proving you know the current one. */
+export async function changeOwnPassword(id, currentPassword, newPassword) {
+  if (isBuiltIn(id)) return { error: 'built-in' };
+  const user = await store.get(idKey(id));
+  if (!user) return { error: 'not-found' };
+  if (!(await verifyPassword(String(currentPassword), user.passwordHash))) return { error: 'wrong-password' };
+  await store.set(idKey(id), { ...user, passwordHash: await hashPassword(String(newPassword)) });
+  return { ok: true };
+}
+
+/** For /account: change your own display name. */
+export async function renameSelf(id, name) {
+  if (isBuiltIn(id)) return { error: 'built-in' };
+  const user = await store.get(idKey(id));
+  if (!user) return { error: 'not-found' };
+  await store.set(idKey(id), { ...user, name: String(name).trim() });
+  return { ok: true };
+}
+
 /** Change name, role and (optionally) password. The email is the login, so it stays. */
 export async function updateUser(id, { name, role, password }) {
   if (isBuiltIn(id)) return { error: 'built-in' };

@@ -32,17 +32,61 @@ export async function cookieOptions() {
   };
 }
 
+// Each user's open sessions (their hashed keys), so "Log out of all devices" and a
+// password change can end every one of them, not just the one in this browser.
+const userSessionsKey = (userId) => `sessions:user:${userId}`;
+
 export async function createSession(userId) {
   const id = randomBytes(32).toString('base64url');
-  await store.set(sessionKey(id), { userId }, { ttlSeconds: MAX_AGE_SECONDS }); // expires server-side too
+  await store.set(sessionKey(id), { userId, createdAt: Date.now() }, { ttlSeconds: MAX_AGE_SECONDS }); // expires server-side too
+  await store.lpush(userSessionsKey(userId), sessionKey(id));
   (await cookies()).set(SESSION_COOKIE, id, await cookieOptions());
 }
 
+/** Log out: this browser only. The session is deleted on the server, so a copied cookie stops working too. */
 export async function destroySession() {
   const jar = await cookies();
   const id = jar.get(SESSION_COOKIE)?.value;
-  if (id) await store.del(sessionKey(id));
+  if (id) {
+    const record = await store.get(sessionKey(id));
+    await store.del(sessionKey(id));
+    if (record?.userId) await store.lrem(userSessionsKey(record.userId), sessionKey(id));
+  }
   jar.delete(SESSION_COOKIE);
+}
+
+/**
+ * End every session of a user (all browsers, phones, laptops). With
+ * `keepCurrent`, the browser making the request stays signed in (used after a
+ * password change: you stay in, everyone else using the old password is out).
+ */
+export async function destroyAllSessions(userId, { keepCurrent = false } = {}) {
+  const currentId = (await cookies()).get(SESSION_COOKIE)?.value;
+  const current = currentId ? sessionKey(currentId) : null;
+  const keys = [...new Set(await store.lrange(userSessionsKey(userId)))];
+  let ended = 0;
+  for (const key of keys) {
+    if (keepCurrent && key === current) continue;
+    await store.del(key);
+    await store.lrem(userSessionsKey(userId), key);
+    ended++;
+  }
+  // Only clear THIS browser's cookie if it belonged to that user (an admin
+  // ending a customer's sessions stays signed in themselves).
+  if (!keepCurrent && current && keys.includes(current)) (await cookies()).delete(SESSION_COOKIE);
+  return ended;
+}
+
+/** How many sessions this user has open right now (expired ones are tidied up as we go). */
+export async function countSessions(userId) {
+  const keys = [...new Set(await store.lrange(userSessionsKey(userId)))];
+  const alive = await store.mget(keys);
+  let n = 0;
+  for (let i = 0; i < keys.length; i++) {
+    if (alive[i]) n++;
+    else await store.lrem(userSessionsKey(userId), keys[i]);
+  }
+  return n;
 }
 
 /**

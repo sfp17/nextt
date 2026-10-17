@@ -15,7 +15,7 @@ import { usePathname } from 'next/navigation';
  *  - it closes by itself after you follow a link (the page changes)
  *  - focus isn't trapped: it's a menu of links, not a dialog
  */
-export default function HeaderNav({ children }) {
+export default function HeaderNav({ children, tools = null }) {
   const pathname = usePathname();
   // Remember WHICH page the menu was opened on: navigating changes the page, so it's closed again.
   const [openOn, setOpenOn] = useState(null);
@@ -62,6 +62,7 @@ export default function HeaderNav({ children }) {
       <nav id="site-nav" className={`nav-links${open ? ' is-open' : ''}`} aria-label="Main">
         {children}
       </nav>
+      {tools && <div className="header-tools">{tools}</div>}
       {/* Without JavaScript the button can't open anything, so show the links instead. */}
       <noscript>
         <style>{'.nav-toggle{display:none!important}.nav-links{display:flex!important;position:static!important}'}</style>

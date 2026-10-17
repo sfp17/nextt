@@ -62,6 +62,15 @@ run before that boundary, so a forged or expired session gets a real **307** to 
 (tested with `ae_session=forged`). The proxy passes the requested path in an `x-return-to` header so the sign-in
 page still returns you to, say, `/orders/ORD-DEMO`. The page checks remain: layouts don't re-run on every navigation.
 
+## Logging out (and staying logged out)
+| Action | Where | What happens on the server |
+|--------|-------|----------------------------|
+| **Log out** | Account menu (initials, top right; inside the hamburger on phones), the admin panel header, `/account` | This browser's session is deleted from the store, so the cookie is worthless even if copied (tested: replaying it gets `user: null`) |
+| **Log out of all devices** | `/account` | Every session of that user is deleted (each user's sessions are listed under `sessions:user:<id>`) |
+| **Change password** | `/account` (needs the current password; 5 tries per 15 min) | All **other** devices are logged out; this one stays in |
+| Admin resets a password | Admin → Users | That user is logged out everywhere; the admin stays in |
+| Admin deletes an account | Admin → Users | Its sessions are deleted; every request after that finds no user |
+
 ## Every action and API route (the writes)
 
 Server actions and route handlers are **public POST/GET endpoints**: anyone can call them with a hand-written

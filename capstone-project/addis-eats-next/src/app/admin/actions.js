@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/session';
+import { getSession, destroyAllSessions } from '@/lib/session';
 import { isAdmin } from '@/lib/roles';
 import { createDish, updateDish, deleteDish, resetMenu } from '@/lib/menu';
 import { createOrder, setOrderStatus, updateOrderDetails, deleteOrder, ADMIN_STATUSES } from '@/lib/orders';
@@ -192,6 +192,9 @@ export async function adminUpdateUser(prevState, formData) {
   if (Object.keys(fieldErrors).length) return { ok: false, values, fieldErrors, error: 'Please fix the highlighted fields.' };
 
   const { user, error } = await updateUser(id, { ...base.data, password });
+  // A new password from the admin: that person must sign in again everywhere (a role change
+  // needs nothing: every request reads the role fresh).
+  if (!error && password) await destroyAllSessions(id);
   if (error === 'built-in') return { ok: false, values, fieldErrors: {}, error: 'Built-in demo accounts can’t be changed.' };
   if (error) return { ok: false, values, fieldErrors: {}, error: 'That account no longer exists.' };
   revalidatePath('/admin/users');
@@ -203,6 +206,7 @@ export async function removeUser(id) {
   if (denied) return denied;
   if (String(id) === admin.id) return { ok: false, error: 'You can’t delete your own account here.' };
   const { error } = await deleteUser(String(id));
+  if (!error) await destroyAllSessions(String(id));
   if (error === 'built-in') return { ok: false, error: 'Built-in demo accounts can’t be deleted.' };
   revalidatePath('/admin/users');
   done('users', 'deleted', 'Account');

@@ -1,19 +1,18 @@
 'use client';
 
-import { useEffect, useTransition } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
-import { signOutAction } from './actions';
 import NavLink from './NavLink';
+import AccountMenu from './AccountMenu';
 import { isAdmin, isStaff } from '@/lib/roles';
 
 // Header auth links. This is DISPLAY ONLY — hiding "Kitchen" from customers
 // is a convenience, not security. /kitchen checks the role on the server.
 export default function AuthStatus() {
   const pathname = usePathname();
-  const [isSigningOut, startSignOut] = useTransition();
   const { data, mutate } = useSWR('/api/session', fetcher, { revalidateOnFocus: true });
 
   // Sign-in/out changes the cookie on the server; re-check after each navigation.
@@ -29,26 +28,14 @@ export default function AuthStatus() {
     );
   }
 
+  // Signed in: the main pages stay in the header; everything about YOUR account
+  // (role pages, settings, Log out) is in the account menu.
   return (
     <>
-      {isStaff(user.role) && <NavLink href="/kitchen">Kitchen</NavLink>}
-      {isStaff(user.role) && <NavLink href="/dashboard">Dashboard</NavLink>}
-      {isAdmin(user.role) && <NavLink href="/admin">Admin</NavLink>}
       <NavLink href="/orders">My orders</NavLink>
-      <button
-        type="button"
-        className="nav-link nav-button"
-        disabled={isSigningOut}
-        title={`Signed in as ${user.name}`}
-        onClick={() =>
-          startSignOut(async () => {
-            mutate({ user: null }, { revalidate: false }); // update header right away
-            await signOutAction(); // deletes the server session + cookie, redirects home
-          })
-        }
-      >
-        {isSigningOut ? 'Signing out…' : 'Sign out'}
-      </button>
+      {isAdmin(user.role) && <NavLink href="/admin">Admin</NavLink>}
+      {!isAdmin(user.role) && isStaff(user.role) && <NavLink href="/kitchen">Kitchen</NavLink>}
+      <AccountMenu user={user} />
     </>
   );
 }

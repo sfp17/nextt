@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Providers from './providers';
 import CartLink from './CartLink';
 import HeaderNav from './HeaderNav';
+import ThemeToggle from './ThemeToggle';
+import { THEME_SCRIPT } from '@/lib/themeScript';
 import MobileCartBar from './MobileCartBar';
 import Toaster from './Toaster';
 import NavLink from './NavLink';
@@ -54,7 +56,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
 
   return (
-    <html lang="en" className={`${dmSans.variable} ${bricolage.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${bricolage.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Sets light/dark before the first paint (lib/theme.js). suppressHydrationWarning on
+            <html> because this script adds data-theme, which the server can't know. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <Providers>
           {/* First Tab stop on every page: jump past the header straight to the content. */}
@@ -65,7 +72,7 @@ export default function RootLayout({ children }) {
                 <span className="brand-mark" aria-hidden="true" />
                 Addis Eats
               </Link>
-              <HeaderNav>
+              <HeaderNav tools={<ThemeToggle />}>
                 <NavLink href="/">Home</NavLink>
                 <NavLink href="/menu">Menu</NavLink>
                 <CartLink />

@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { requireUser } from '@/lib/session';
 import { isAdmin } from '@/lib/roles';
 import AdminNav from './AdminNav';
+import LogoutButton from '../LogoutButton';
 
 export const metadata = {
   title: { default: 'Admin', template: '%s · Admin | Addis Eats' },
@@ -34,7 +35,10 @@ export default async function AdminLayout({ children }) {
           <p className="admin-eyebrow">Admin panel</p>
           <p className="admin-who">Signed in as {user.name}</p>
         </div>
-        <AdminNav />
+        <div className="admin-head-right">
+          <AdminNav />
+          <LogoutButton className="btn btn-quiet admin-logout" />
+        </div>
       </div>
       {children}
     </div>
